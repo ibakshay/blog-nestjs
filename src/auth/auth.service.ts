@@ -1,5 +1,7 @@
 import { Injectable, InternalServerErrorException, Logger, UnauthorizedException } from '@nestjs/common';
-import { LoginDTO, RegisterDTO } from 'src/models/user.dto';
+import { JwtService } from '@nestjs/jwt'
+
+import { LoginDTO, RegisterDTO } from 'src/models/user.model';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserEntity } from 'src/entities/user.entity';
 import { Repository } from 'typeorm';
@@ -7,7 +9,7 @@ import { Repository } from 'typeorm';
 @Injectable()
 export class AuthService {
 
-    constructor(@InjectRepository(UserEntity) private userRepository: Repository<UserEntity>) {
+    constructor(@InjectRepository(UserEntity) private userRepository: Repository<UserEntity>, private jwtService: JwtService) {
 
     }
 
@@ -16,7 +18,9 @@ export class AuthService {
         try {
             const user = this.userRepository.create(credentials)
             await user.save()
-            return user
+            const payload = { username: user.username }
+            const token = this.jwtService.sign(payload)
+            return { user: { ...user, token } }
         } catch (error) {
             throw new InternalServerErrorException(error)
         }
@@ -25,19 +29,16 @@ export class AuthService {
     async login({ email, password }: LoginDTO) {
         try {
             const user = await this.userRepository.findOne({ where: { email } })
-            const isValidPassword = await user.comparePassword(password)
-
-            if (!isValidPassword) {
-                throw new UnauthorizedException('Invalid credentials and ')
+            const isValid = await user.comparePassword(password);
+            if (!isValid) {
+                throw new UnauthorizedException('Invalid credentials')
             }
-
-            return user
-
-        } catch (error) {
-            throw new UnauthorizedException(error)
+            const payload = { username: user.username }
+            const token = this.jwtService.sign(payload)
+            return { user: { ...user, token } };
+        } catch (err) {
+            throw new UnauthorizedException('Invalid credentials');
         }
-
-
     }
 
 
