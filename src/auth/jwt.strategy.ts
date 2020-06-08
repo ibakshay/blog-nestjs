@@ -13,11 +13,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     ) {
         super({
             jwtFromRequest: ExtractJwt.fromAuthHeaderWithScheme('Token'),
-            secretOrKey: process.env.SECRET,
+            secretOrKey: 'hahaha',
         });
     }
 
     async validate(payload: AuthPayload) {
+        console.log(`I am validate and I am called`)
         const { username } = payload;
         const user = this.userRepo.find({ where: { username } });
         if (!user) {
