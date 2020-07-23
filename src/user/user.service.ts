@@ -13,19 +13,10 @@ export class UserService {
 
     }
 
-    private
-
-    async findByUsername(username: string): Promise<UserEntity> {
-        const user = await this.userRepo.findOne({ where: { username } })
-
-        return user
-
+    async findByUsername(username: string, user?: UserEntity): Promise<UserEntity> {
+        return (await this.userRepo.findOne({ where: { username }, relations: ['followers'] })).toProfile(user)
     }
-    async updateCurrentUser(username: string, data: UpdateUserDTO) {
-        await this.userRepo.update({ username }, data)
-        return this.findByUsername(username)
 
-    }
     async followUser(currentUser: UserEntity, username: string) {
         const user = await this.userRepo.findOne({ where: { username }, relations: ['followers'] })
         user.followers.push(currentUser)

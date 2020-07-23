@@ -1,8 +1,9 @@
-import { Controller, Get, Param, NotFoundException, Logger, Post, UseGuards, Delete } from '@nestjs/common';
+import { Controller, Get, Param, NotFoundException, Logger, Post, UseGuards, Delete, HttpCode } from '@nestjs/common';
 import { UserService } from './user.service';
 import { User } from 'src/auth/user.decorator';
 import { UserEntity } from 'src/entities/user.entity';
 import { AuthGuard } from '@nestjs/passport';
+import { OptionalAuthGuard } from 'src/auth/optionalauth.guard';
 
 @Controller('profiles')
 export class ProfileController {
@@ -10,15 +11,17 @@ export class ProfileController {
     constructor(private userService: UserService) { }
 
     @Get('/:username')
-    async findProfile(@Param() { username }: any) {
-        Logger.log(username)
-        const user = await this.userService.findByUsername(username)
+    @UseGuards(new OptionalAuthGuard())
+    async findProfile(@Param() username: string, @User() user: UserEntity) {
 
-        if (!user) { throw new NotFoundException() }
-        return { profile: user }
+        const profile = await this.userService.findByUsername(username, user)
+
+        if (!profile) { throw new NotFoundException() }
+        return { profile }
     }
 
     @Post('/:username/follow')
+    @HttpCode(200)
     @UseGuards(AuthGuard())
     async followUser(@User() user: UserEntity, @Param('username') username: string) {
         return this.userService.followUser(user, username)
